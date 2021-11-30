@@ -41,7 +41,7 @@ contract SupplyChain {
     uint sku;
     uint price;
     State state;
-    address seller;
+    address payable seller;
     address payable buyer;
   }
 
@@ -79,10 +79,26 @@ contract SupplyChain {
    */
   
   
-  /// modifier forSale
-  /// modifier sold
-  /// modifier shipped
-  /// modifier received
+  modifier forSale(uint _sku){
+    require(items[_sku].sku >= 0); 
+    require(items[_sku].state == State.ForSale);
+    _;
+  }
+  modifier sold(uint _sku){
+    require(items[_sku].sku >= 0); 
+    require(items[_sku].state == State.Sold);
+    _;
+  }
+  modifier shipped(uint _sku){
+    require(items[_sku].sku >= 0); 
+    require(items[_sku].state == State.Shipped);
+    _;
+  }
+  modifier received(uint _sku){
+    require(items[_sku].sku >= 0); 
+    require(items[_sku].state == State.Received);
+    _;
+  }
 
 
   constructor() public {
@@ -107,22 +123,40 @@ contract SupplyChain {
 
   function buyItem(uint sku)
     public
-  {}
+    payable
+    forSale(sku)
+    paidEnough(items[sku].price)
+    checkValue(sku)
+  {
+    items[sku].buyer = msg.sender;
+    items[sku].state = State.Sold;
+    items[sku].seller.transfer(items[sku].price);
+    LogSold(sku);
+  }
 
   /* Add 2 modifiers to check if the item is sold already, and that the person calling this function
   is the seller. Change the state of the item to shipped. Remember to call the event associated with this function!*/
   function shipItem(uint sku)
     public
-  {}
+    sold(sku)
+    verifyCaller(items[sku].seller)
+  {
+    items[sku].state = State.Shipped;
+    LogShipped(sku);
+  }
 
   /* Add 2 modifiers to check if the item is shipped already, and that the person calling this function
   is the buyer. Change the state of the item to received. Remember to call the event associated with this function!*/
   function receiveItem(uint sku)
     public
-  {}
+    shipped(sku)
+    verifyCaller(items[sku].buyer)
+  {
+    items[sku].state = State.Received;
+    LogReceived(sku);
+  }
 
   /* We have these functions completed so we can run tests, just ignore it :) */
-  /*
   function fetchItem(uint _sku) public view returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) {
     name = items[_sku].name;
     sku = items[_sku].sku;
@@ -131,6 +165,6 @@ contract SupplyChain {
     seller = items[_sku].seller;
     buyer = items[_sku].buyer;
     return (name, sku, price, state, seller, buyer);
-  } */
+  } 
 
 }
